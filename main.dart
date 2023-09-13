@@ -1,184 +1,200 @@
-import 'dart:async';
 import 'package:flutter/material.dart';
 
 void main() {
-  runApp(LoadingScreen());
+  runApp(ProgressBarApp());
 }
 
-class LoadingScreen extends StatefulWidget {
-  @override
-  _LoadingScreenState createState() => _LoadingScreenState();
-}
-
-class _LoadingScreenState extends State<LoadingScreen> {
-  bool _showImage = true;
-  late Timer _blinkTimer;
-
-  @override
-  void initState() {
-    super.initState();
-    _startBlinking();
-  }
-
-  void _startBlinking() {
-    _blinkTimer = Timer.periodic(Duration(seconds: 1), (timer) {
-      if (!mounted) {
-        _blinkTimer.cancel();
-        return;
-      }
-      setState(() {
-        _showImage = !_showImage;
-      });
-    });
-
-    Timer(Duration(seconds: 3), () {
-      if (!mounted) {
-        return;
-      }
-      runApp(MyApp());
-    });
-  }
-
-  @override
-  void dispose() {
-    _blinkTimer.cancel();
-    super.dispose();
-  }
-
+class ProgressBarApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      home: Scaffold(
-        backgroundColor: Color(0xFFFCD167),
-        body: Center(
-          child: AnimatedOpacity(
-            opacity: _showImage ? 1.0 : 0.0,
-            duration: Duration(milliseconds: 500),
-            child: Image.asset(
-              'assets/2.png',
-              width: 400,
-              height: 400,
-            ),
-          ),
+      theme: ThemeData(
+        scaffoldBackgroundColor: Colors.white, // Cor de fundo da página
+        appBarTheme: AppBarTheme(
+          backgroundColor: Color(0xFFFCD167), // Cor do AppBar
         ),
       ),
+      initialRoute: '/', // Rota inicial
+      routes: {
+        '/': (context) => ProgressBarScreen(), // Rota da tela principal
+        '/outraTela': (context) => OutraTela(), // Rota da outra tela
+      },
     );
   }
 }
 
-class MyApp extends StatelessWidget {
+class ProgressBarScreen extends StatefulWidget {
   @override
-  Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'Welcome Page',
-      home: WelcomePage(),
-    );
-  }
+  _ProgressBarScreenState createState() => _ProgressBarScreenState();
 }
 
-class WelcomePage extends StatelessWidget {
+class _ProgressBarScreenState extends State<ProgressBarScreen> {
+  int progressValue0 = 1; // Novo valor do slider
+  int progressValue1 = 1;
+  int progressValue2 = 1;
+
+  String selectedValue =
+      'Ciências da Natureza e suas Tecnologias'; // Valor selecionado da DropdownButton
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Color.fromARGB(255, 255, 255, 255),
       appBar: AppBar(
-        backgroundColor: Color(0xFFFCD167),
-        toolbarHeight: 70,
-        title: Text('Bem Vindo(a)', style: TextStyle(color: Colors.black)),
-        actions: [
-          Padding(
-            padding: EdgeInsets.only(right: 16.0),
-            child: Image.asset(
-              'assets/2.png',
-              width: 80,
-              height: 80,
+        title: Text(
+          'Estudos',
+          style: TextStyle(
+              color: Colors.black), // Define a cor do texto para preto
+        ),
+      ),
+      body: Column(
+        crossAxisAlignment: CrossAxisAlignment.start, // Alinhamento à esquerda
+        children: <Widget>[
+          Center(
+            child: Column(
+              children: [
+                Text(
+                  'Competências a serem estudadas', // Título
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                SizedBox(
+                    height: 10), // Espaçamento entre o título e o menu suspenso
+                // Centraliza o DropdownButton
+                DropdownButton<String>(
+                  value: selectedValue,
+                  onChanged: (newValue) {
+                    setState(() {
+                      selectedValue = newValue!;
+                    });
+                  },
+                  items: <String>[
+                    'Ciências da Natureza e suas Tecnologias',
+                    'Ciências Humanas e suas Tecnologias',
+                    'Matemática e suas Tecnologias',
+                    'Linguagens, Códigos e suas Tecnologias',
+                    'Redação'
+                  ].map<DropdownMenuItem<String>>((String value) {
+                    return DropdownMenuItem<String>(
+                      value: value,
+                      child: Container(
+                        padding: EdgeInsets.symmetric(
+                            vertical:
+                                16), // Aumenta o espaçamento vertical do item do menu suspenso
+                        child: Text(value),
+                      ),
+                    );
+                  }).toList(),
+                ),
+              ],
+            ),
+          ),
+          SizedBox(height: 20), // Espaçamento entre o menu suspenso e o botão
+          Center(
+            // Centraliza o Slider
+            child: Column(
+              children: [
+                SliderTheme(
+                  data: SliderThemeData(
+                    thumbColor: Color(0xFFFCD167), // Cor da bolinha
+                    activeTrackColor:
+                        Color(0xFF822E5E), // Cor da barra de progresso ativa
+                    inactiveTrackColor:
+                        Color(0xFFD6D6D6), // Cor da barra de progresso inativa
+                    overlayColor: Color(0xFFEA68BF)
+                        .withAlpha(100), // Cor de destaque ao tocar
+                    trackHeight: 5.0, // Altura da barra de progresso
+                    thumbShape: RoundSliderThumbShape(
+                        enabledThumbRadius: 12.0), // Formato da bolinha
+                    overlayShape: RoundSliderOverlayShape(
+                        overlayRadius: 20.0), // Formato do destaque
+                  ),
+                  child: Slider(
+                    value: progressValue1.toDouble(),
+                    min: 1,
+                    max: 7,
+                    onChanged: (newValue) {
+                      setState(() {
+                        progressValue1 = newValue.toInt();
+                      });
+                    },
+                  ),
+                ),
+                Text(
+                  'Dias da semana: $progressValue1',
+                  style: TextStyle(fontSize: 20),
+                ),
+                SizedBox(height: 30), // Espaçamento entre os sliders
+                SliderTheme(
+                  data: SliderThemeData(
+                    thumbColor: Color(0xFFFCD167), // Cor da bolinha
+                    activeTrackColor:
+                        Color(0xFF822E5E), // Cor da barra de progresso ativa
+                    inactiveTrackColor:
+                        Color(0xFFD6D6D6), // Cor da barra de progresso inativa
+                    overlayColor: Color(0xFFEA68BF)
+                        .withAlpha(100), // Cor de destaque ao tocar
+                    trackHeight: 5.0, // Altura da barra de progresso
+                    thumbShape: RoundSliderThumbShape(
+                        enabledThumbRadius: 12.0), // Formato da bolinha
+                    overlayShape: RoundSliderOverlayShape(
+                        overlayRadius: 20.0), // Formato do destaque
+                  ),
+                  child: Slider(
+                    value: progressValue2.toDouble(),
+                    min: 1,
+                    max: 24,
+                    onChanged: (newValue) {
+                      setState(() {
+                        progressValue2 = newValue.toInt();
+                      });
+                    },
+                  ),
+                ),
+                Text(
+                  'Horas no dia: $progressValue2',
+                  style: TextStyle(fontSize: 20),
+                ),
+              ],
+            ),
+          ),
+          SizedBox(height: 20), // Espaçamento entre o botão e o final da tela
+          Align(
+            alignment: Alignment.center, // Centraliza o botão
+            child: ElevatedButton(
+              onPressed: () {
+                // Navegar para outra tela ao clicar no botão "Ir"
+                Navigator.pushNamed(context, '/outraTela');
+              },
+              style: ElevatedButton.styleFrom(
+                padding: EdgeInsets.symmetric(
+                    horizontal: 40, vertical: 24), // Aumenta o tamanho do botão
+                backgroundColor: Color(0xFFEA86BF), // Cor de fundo do botão
+              ),
+              child: Text(
+                'Ir',
+                style: TextStyle(
+                    fontSize: 18), // Aumenta o tamanho do texto do botão
+              ),
             ),
           ),
         ],
       ),
-      body: Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            CustomContainer(
-              title: 'Estudos',
-              imageAsset: 'assets/estudos.png',
-            ),
-            SizedBox(height: 20),
-            CustomContainer(
-              title: 'Reuniões',
-              imageAsset: 'assets/reunioes.png',
-            ),
-            SizedBox(height: 20),
-            CustomContainer(
-              title: 'Alarmes',
-              imageAsset: 'assets/alarmes.png',
-            ),
-          ],
-        ),
-      ),
     );
   }
 }
 
-class CustomContainer extends StatefulWidget {
-  final String title;
-  final String imageAsset;
-
-  CustomContainer({required this.title, required this.imageAsset});
-
-  @override
-  _CustomContainerState createState() => _CustomContainerState();
-}
-
-class _CustomContainerState extends State<CustomContainer> {
-  bool _isPressed = false;
-
+// Tela adicional (outraTela)
+class OutraTela extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
-      onTapDown: (_) {
-        setState(() {
-          _isPressed = true;
-        });
-      },
-      onTapUp: (_) {
-        setState(() {
-          _isPressed = false;
-        });
-      },
-      onTapCancel: () {
-        setState(() {
-          _isPressed = false;
-        });
-      },
-      child: AnimatedContainer(
-        duration: Duration(milliseconds: 200),
-        width: 200,
-        height: 100,
-        decoration: BoxDecoration(
-          color: _isPressed ? Color(0xFFC64F80) : Color(0xFFEA86BF),
-          borderRadius: BorderRadius.circular(20),
-        ),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Image.asset(
-              widget.imageAsset,
-              width: 40,
-              height: 40,
-            ),
-            SizedBox(width: 10),
-            Text(
-              widget.title,
-              style: TextStyle(
-                color: Colors.white,
-                fontSize: 20,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-          ],
-        ),
+    return Scaffold(
+      appBar: AppBar(
+        title: Text('Outra Tela'),
+      ),
+      body: Center(
+        child: Text('Esta é outra tela!'),
       ),
     );
   }
