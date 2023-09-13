@@ -1,201 +1,225 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_local_notifications/flutter_local_notifications.dart';
+import 'package:timezone/data/latest.dart' as tz;
+import 'package:timezone/timezone.dart' as tz;
 
-void main() {
-  runApp(ProgressBarApp());
+void main() async {
+  tz.initializeTimeZones();
+  runApp(MaterialApp(
+    home: ReunioesPage(),
+  ));
 }
 
-class ProgressBarApp extends StatelessWidget {
+final FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin =
+    FlutterLocalNotificationsPlugin();
+
+class ReunioesPage extends StatefulWidget {
   @override
-  Widget build(BuildContext context) {
-    return MaterialApp(
-      theme: ThemeData(
-        scaffoldBackgroundColor: Colors.white, // Cor de fundo da página
-        appBarTheme: AppBarTheme(
-          backgroundColor: Color(0xFFFCD167), // Cor do AppBar
-        ),
-      ),
-      initialRoute: '/', // Rota inicial
-      routes: {
-        '/': (context) => ProgressBarScreen(), // Rota da tela principal
-        '/outraTela': (context) => OutraTela(), // Rota da outra tela
-      },
-    );
-  }
+  _ReunioesPageState createState() => _ReunioesPageState();
 }
 
-class ProgressBarScreen extends StatefulWidget {
-  @override
-  _ProgressBarScreenState createState() => _ProgressBarScreenState();
-}
+class _ReunioesPageState extends State<ReunioesPage> {
+  String selectedDate = 'Selecione a data';
+  String selectedHour = '01'; // Hora de 1 AM
+  String selectedMinute = '00'; // Minuto 0
 
-class _ProgressBarScreenState extends State<ProgressBarScreen> {
-  int progressValue0 = 1; // Novo valor do slider
-  int progressValue1 = 1;
-  int progressValue2 = 1;
+  String alarmName = '';
+  String alarmDescription = '';
+  int importance = 2; // 0 = Simples, 1 = Normal, 2 = Importante (ou personalize conforme necessário)
 
-  String selectedValue =
-      'Ciências da Natureza e suas Tecnologias'; // Valor selecionado da DropdownButton
+  final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text(
-          'Estudos',
-          style: TextStyle(
-              color: Colors.black), // Define a cor do texto para preto
-        ),
+        title: Text('Reuniões'),
+        backgroundColor: Color(0xFFFCD167),
       ),
-      body: Column(
-        crossAxisAlignment: CrossAxisAlignment.start, // Alinhamento à esquerda
-        children: <Widget>[
-          Center(
-            child: Column(
-              children: [
-                Text(
-                  'Competências a serem estudadas', // Título
-                  style: TextStyle(
-                    fontSize: 18,
+      body: Padding(
+        padding: const EdgeInsets.all(20.0),
+        child: Form(
+          key: _formKey,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'Nova Reunião',
+                style: TextStyle(
+                  fontSize: 24,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              SizedBox(height: 20),
+              TextFormField(
+                decoration: InputDecoration(
+                  labelText: 'Nome da Reunião',
+                  border: OutlineInputBorder(),
+                ),
+                validator: (value) {
+                  if (value == null || value.isEmpty) {
+                    return 'Por favor, insira o nome da reunião.';
+                  }
+                  return null;
+                },
+                onChanged: (value) {
+                  alarmName = value;
+                },
+              ),
+              SizedBox(height: 10),
+              TextFormField(
+                decoration: InputDecoration(
+                  labelText: 'Descrição',
+                  border: OutlineInputBorder(),
+                ),
+                onChanged: (value) {
+                  alarmDescription = value;
+                },
+              ),
+              SizedBox(height: 10),
+              DropdownButton<int>(
+                value: importance,
+                onChanged: (int? newValue) {
+                  setState(() {
+                    importance = newValue ?? 2; // Definir o valor padrão se for nulo
+                  });
+                },
+                items: [
+                  DropdownMenuItem<int>(
+                    value: 0,
+                    child: Text('Simples'),
+                  ),
+                  DropdownMenuItem<int>(
+                    value: 1,
+                    child: Text('Normal'),
+                  ),
+                  DropdownMenuItem<int>(
+                    value: 2,
+                    child: Text('Importante'),
+                  ),
+                ],
+              ),
+              SizedBox(height: 10),
+              ElevatedButton(
+                onPressed: () {
+                  _showDateTimePicker(context);
+                },
+                child: Text('Selecionar Data e Hora'),
+                style: ElevatedButton.styleFrom(
+                  primary: Color(0xFFEA86BF),
+                  textStyle: TextStyle(
+                    color: Colors.black,
                     fontWeight: FontWeight.bold,
                   ),
                 ),
-                SizedBox(
-                    height: 10), // Espaçamento entre o título e o menu suspenso
-                // Centraliza o DropdownButton
-                DropdownButton<String>(
-                  value: selectedValue,
-                  onChanged: (newValue) {
-                    setState(() {
-                      selectedValue = newValue!;
-                    });
-                  },
-                  items: <String>[
-                    'Ciências da Natureza e suas Tecnologias',
-                    'Ciências Humanas e suas Tecnologias',
-                    'Matemática e suas Tecnologias',
-                    'Linguagens, Códigos e suas Tecnologias',
-                    'Redação'
-                  ].map<DropdownMenuItem<String>>((String value) {
-                    return DropdownMenuItem<String>(
-                      value: value,
-                      child: Container(
-                        padding: EdgeInsets.symmetric(
-                            vertical:
-                                16), // Aumenta o espaçamento vertical do item do menu suspenso
-                        child: Text(value),
-                      ),
-                    );
-                  }).toList(),
-                ),
-              ],
-            ),
-          ),
-          SizedBox(height: 20), // Espaçamento entre o menu suspenso e o botão
-          Center(
-            // Centraliza o Slider
-            child: Column(
-              children: [
-                SliderTheme(
-                  data: SliderThemeData(
-                    thumbColor: Color(0xFFFCD167), // Cor da bolinha
-                    activeTrackColor:
-                        Color(0xFF822E5E), // Cor da barra de progresso ativa
-                    inactiveTrackColor:
-                        Color(0xFFD6D6D6), // Cor da barra de progresso inativa
-                    overlayColor: Color(0xFFEA68BF)
-                        .withAlpha(100), // Cor de destaque ao tocar
-                    trackHeight: 5.0, // Altura da barra de progresso
-                    thumbShape: RoundSliderThumbShape(
-                        enabledThumbRadius: 12.0), // Formato da bolinha
-                    overlayShape: RoundSliderOverlayShape(
-                        overlayRadius: 20.0), // Formato do destaque
-                  ),
-                  child: Slider(
-                    value: progressValue1.toDouble(),
-                    min: 1,
-                    max: 7,
-                    onChanged: (newValue) {
-                      setState(() {
-                        progressValue1 = newValue.toInt();
-                      });
-                    },
-                  ),
-                ),
-                Text(
-                  'Dias da semana: $progressValue1',
-                  style: TextStyle(fontSize: 20),
-                ),
-                SizedBox(height: 30), // Espaçamento entre os sliders
-                SliderTheme(
-                  data: SliderThemeData(
-                    thumbColor: Color(0xFFFCD167), // Cor da bolinha
-                    activeTrackColor:
-                        Color(0xFF822E5E), // Cor da barra de progresso ativa
-                    inactiveTrackColor:
-                        Color(0xFFD6D6D6), // Cor da barra de progresso inativa
-                    overlayColor: Color(0xFFEA68BF)
-                        .withAlpha(100), // Cor de destaque ao tocar
-                    trackHeight: 5.0, // Altura da barra de progresso
-                    thumbShape: RoundSliderThumbShape(
-                        enabledThumbRadius: 12.0), // Formato da bolinha
-                    overlayShape: RoundSliderOverlayShape(
-                        overlayRadius: 20.0), // Formato do destaque
-                  ),
-                  child: Slider(
-                    value: progressValue2.toDouble(),
-                    min: 1,
-                    max: 24,
-                    onChanged: (newValue) {
-                      setState(() {
-                        progressValue2 = newValue.toInt();
-                      });
-                    },
-                  ),
-                ),
-                Text(
-                  'Horas no dia: $progressValue2',
-                  style: TextStyle(fontSize: 20),
-                ),
-              ],
-            ),
-          ),
-          SizedBox(height: 20), // Espaçamento entre o botão e o final da tela
-          Align(
-            alignment: Alignment.center, // Centraliza o botão
-            child: ElevatedButton(
-              onPressed: () {
-                // Navegar para outra tela ao clicar no botão "Ir"
-                Navigator.pushNamed(context, '/outraTela');
-              },
-              style: ElevatedButton.styleFrom(
-                padding: EdgeInsets.symmetric(
-                    horizontal: 40, vertical: 24), // Aumenta o tamanho do botão
-                backgroundColor: Color(0xFFEA86BF), // Cor de fundo do botão
               ),
-              child: Text(
-                'Ir',
+              SizedBox(height: 20),
+              Text(
+                'Data e Hora Selecionadas:',
                 style: TextStyle(
-                    fontSize: 18), // Aumenta o tamanho do texto do botão
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                ),
               ),
-            ),
+              Text(
+                'Data: $selectedDate',
+                style: TextStyle(fontSize: 16),
+              ),
+              Text(
+                'Hora: $selectedHour:$selectedMinute',
+                style: TextStyle(fontSize: 16),
+              ),
+              SizedBox(height: 20),
+              ElevatedButton(
+                onPressed: () {
+                  scheduleMeetingNotification();
+                },
+                child: Text('Marcar Reunião'),
+                style: ElevatedButton.styleFrom(
+                  primary: Color(0xFFEA86BF),
+                  textStyle: TextStyle(
+                    color: Colors.black,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
+            ],
           ),
-        ],
+        ),
       ),
     );
   }
-}
 
-// Tela adicional (outraTela)
-class OutraTela extends StatelessWidget {
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: Text('Outra Tela'),
-      ),
-      body: Center(
-        child: Text('Esta é outra tela!'),
+  void scheduleMeetingNotification() async {
+    if (_formKey.currentState!.validate()) {
+      final DateTime scheduledTime = DateTime(
+        int.parse(selectedDate.split('/')[2]), // Ano
+        int.parse(selectedDate.split('/')[1]), // Mês
+        int.parse(selectedDate.split('/')[0]), // Dia
+        int.parse(selectedHour), // Hora
+        int.parse(selectedMinute), // Minutos
+      );
+
+      final AndroidNotificationDetails androidPlatformChannelSpecifics =
+          AndroidNotificationDetails(
+        'meeting_channel_id',
+        'Meeting Channel',
+        importance: Importance.max,
+        priority: Priority.high,
+        showWhen: true,
+      );
+
+      final NotificationDetails platformChannelSpecifics = NotificationDetails(
+        android: androidPlatformChannelSpecifics,
+      );
+
+      await flutterLocalNotificationsPlugin.zonedSchedule(
+        0, // ID da notificação
+        'Reunião: $alarmName', // Título da notificação
+        alarmDescription, // Corpo da notificação
+        tz.TZDateTime.from(scheduledTime, tz.local), // Horário agendado
+        platformChannelSpecifics,
+        androidAllowWhileIdle: true,
+        uiLocalNotificationDateInterpretation:
+            UILocalNotificationDateInterpretation.absoluteTime,
+        payload: 'Reunião marcada: $alarmName', // Dados adicionais que você pode passar para a notificação
+      );
+
+      setState(() {
+        // Atualize o estado, se necessário
+      });
+    }
+  }
+
+  void _showDateTimePicker(BuildContext context) async {
+    final DateTime currentDate = DateTime.now();
+    DateTime? selectedDate = await showDatePicker(
+      context: context,
+      initialDate: currentDate,
+      firstDate: currentDate,
+      lastDate: currentDate.add(Duration(days: 365)), // Um ano a partir da data atual
+    );
+
+    if (selectedDate != null) {
+      setState(() {
+        this.selectedDate =
+            "${selectedDate.day.toString().padLeft(2, '0')}/${selectedDate.month.toString().padLeft(2, '0')}/${selectedDate.year.toString()}";
+      });
+    }
+
+    TimeOfDay? selectedTime = await showTimePicker(
+      context: context,
+      initialTime: TimeOfDay(
+        hour: 1, // Inicialmente, 1 AM
+        minute: 0, // Inicialmente, 0 minuto
       ),
     );
+
+    if (selectedTime != null) {
+      setState(() {
+        this.selectedHour = selectedTime.hour.toString().padLeft(2, '0');
+        this.selectedMinute = selectedTime.minute.toString().padLeft(2, '0');
+      });
+    }
   }
 }
