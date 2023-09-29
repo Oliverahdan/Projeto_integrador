@@ -4,11 +4,21 @@ import 'package:timezone/data/latest.dart' as tz;
 import 'package:timezone/timezone.dart' as tz;
 
 void main() async {
-  tz.initializeTimeZones();
+  WidgetsFlutterBinding.ensureInitialized(); // Adicione esta linha
+
+  await _configureLocalTimeZone();
+
   runApp(MaterialApp(
     home: ReunioesPage(),
   ));
 }
+
+Future<void> _configureLocalTimeZone() async {
+  tz.initializeTimeZones();
+  final String timeZoneName = 'America/Sao_Paulo'; // Defina o fuso horário desejado
+  tz.setLocalLocation(tz.getLocation(timeZoneName));
+}
+
 
 final FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin =
     FlutterLocalNotificationsPlugin();
@@ -20,14 +30,17 @@ class ReunioesPage extends StatefulWidget {
 
 class _ReunioesPageState extends State<ReunioesPage> {
   String selectedDate = 'Selecione a data';
-  String selectedHour = '01'; // Hora de 1 AM
-  String selectedMinute = '00'; // Minuto 0
-
+  String selectedHour = '01';
+  String selectedMinute = '00';
   String alarmName = '';
   String alarmDescription = '';
   int importance = 2; // 0 = Simples, 1 = Normal, 2 = Importante (ou personalize conforme necessário)
-
   final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
+
+  @override
+  void initState() {
+    super.initState();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -114,25 +127,10 @@ class _ReunioesPageState extends State<ReunioesPage> {
                 ),
               ),
               SizedBox(height: 20),
-              Text(
-                'Data e Hora Selecionadas:',
-                style: TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-              Text(
-                'Data: $selectedDate',
-                style: TextStyle(fontSize: 16),
-              ),
-              Text(
-                'Hora: $selectedHour:$selectedMinute',
-                style: TextStyle(fontSize: 16),
-              ),
-              SizedBox(height: 20),
               ElevatedButton(
                 onPressed: () {
                   scheduleMeetingNotification();
+                  _showMeetingScheduledDialog(context); // Mostra o pop-up após marcar a reunião
                 },
                 child: Text('Marcar Reunião'),
                 style: ElevatedButton.styleFrom(
@@ -221,5 +219,25 @@ class _ReunioesPageState extends State<ReunioesPage> {
         this.selectedMinute = selectedTime.minute.toString().padLeft(2, '0');
       });
     }
+  }
+
+  void _showMeetingScheduledDialog(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: Text('Reunião Marcada'),
+          content: Text('A reunião foi marcada com sucesso.'),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.of(context).pop(); // Fecha o pop-up
+              },
+              child: Text('OK'),
+            ),
+          ],
+        );
+      },
+    );
   }
 }
