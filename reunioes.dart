@@ -4,8 +4,7 @@ import 'package:timezone/data/latest.dart' as tz;
 import 'package:timezone/timezone.dart' as tz;
 
 void main() async {
-  WidgetsFlutterBinding.ensureInitialized(); // Adicione esta linha
-
+  WidgetsFlutterBinding.ensureInitialized();
   await _configureLocalTimeZone();
 
   runApp(MaterialApp(
@@ -15,10 +14,9 @@ void main() async {
 
 Future<void> _configureLocalTimeZone() async {
   tz.initializeTimeZones();
-  final String timeZoneName = 'America/Sao_Paulo'; // Defina o fuso horário desejado
+  final String timeZoneName = 'America/Sao_Paulo';
   tz.setLocalLocation(tz.getLocation(timeZoneName));
 }
-
 
 final FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin =
     FlutterLocalNotificationsPlugin();
@@ -34,12 +32,22 @@ class _ReunioesPageState extends State<ReunioesPage> {
   String selectedMinute = '00';
   String alarmName = '';
   String alarmDescription = '';
-  int importance = 2; // 0 = Simples, 1 = Normal, 2 = Importante (ou personalize conforme necessário)
+  int importance = 2;
   final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
 
   @override
   void initState() {
     super.initState();
+    _initializeNotifications();
+  }
+
+  void _initializeNotifications() {
+    final AndroidInitializationSettings initializationSettingsAndroid =
+        AndroidInitializationSettings('app_icon');
+    final InitializationSettings initializationSettings = InitializationSettings(
+      android: initializationSettingsAndroid,
+    );
+    flutterLocalNotificationsPlugin.initialize(initializationSettings);
   }
 
   @override
@@ -94,7 +102,7 @@ class _ReunioesPageState extends State<ReunioesPage> {
                 value: importance,
                 onChanged: (int? newValue) {
                   setState(() {
-                    importance = newValue ?? 2; // Definir o valor padrão se for nulo
+                    importance = newValue ?? 2;
                   });
                 },
                 items: [
@@ -129,8 +137,7 @@ class _ReunioesPageState extends State<ReunioesPage> {
               SizedBox(height: 20),
               ElevatedButton(
                 onPressed: () {
-                  scheduleMeetingNotification();
-                  _showMeetingScheduledDialog(context); // Mostra o pop-up após marcar a reunião
+                  _scheduleMeetingNotification();
                 },
                 child: Text('Marcar Reunião'),
                 style: ElevatedButton.styleFrom(
@@ -148,14 +155,46 @@ class _ReunioesPageState extends State<ReunioesPage> {
     );
   }
 
-  void scheduleMeetingNotification() async {
+  void _showDateTimePicker(BuildContext context) async {
+    final DateTime currentDate = DateTime.now();
+    DateTime? selectedDate = await showDatePicker(
+      context: context,
+      initialDate: currentDate,
+      firstDate: currentDate,
+      lastDate: currentDate.add(Duration(days: 365)),
+    );
+
+    if (selectedDate != null) {
+      setState(() {
+        this.selectedDate =
+            "${selectedDate.day.toString().padLeft(2, '0')}/${selectedDate.month.toString().padLeft(2, '0')}/${selectedDate.year.toString()}";
+      });
+    }
+
+    TimeOfDay? selectedTime = await showTimePicker(
+      context: context,
+      initialTime: TimeOfDay(
+        hour: 1,
+        minute: 0,
+      ),
+    );
+
+    if (selectedTime != null) {
+      setState(() {
+        this.selectedHour = selectedTime.hour.toString().padLeft(2, '0');
+        this.selectedMinute = selectedTime.minute.toString().padLeft(2, '0');
+      });
+    }
+  }
+
+  void _scheduleMeetingNotification() async {
     if (_formKey.currentState!.validate()) {
       final DateTime scheduledTime = DateTime(
-        int.parse(selectedDate.split('/')[2]), // Ano
-        int.parse(selectedDate.split('/')[1]), // Mês
-        int.parse(selectedDate.split('/')[0]), // Dia
-        int.parse(selectedHour), // Hora
-        int.parse(selectedMinute), // Minutos
+        int.parse(selectedDate.split('/')[2]),
+        int.parse(selectedDate.split('/')[1]),
+        int.parse(selectedDate.split('/')[0]),
+        int.parse(selectedHour),
+        int.parse(selectedMinute),
       );
 
       final AndroidNotificationDetails androidPlatformChannelSpecifics =
@@ -172,72 +211,40 @@ class _ReunioesPageState extends State<ReunioesPage> {
       );
 
       await flutterLocalNotificationsPlugin.zonedSchedule(
-        0, // ID da notificação
-        'Reunião: $alarmName', // Título da notificação
-        alarmDescription, // Corpo da notificação
-        tz.TZDateTime.from(scheduledTime, tz.local), // Horário agendado
+        0,
+        'Reunião: $alarmName',
+        alarmDescription,
+        tz.TZDateTime.from(scheduledTime, tz.local),
         platformChannelSpecifics,
         androidAllowWhileIdle: true,
         uiLocalNotificationDateInterpretation:
             UILocalNotificationDateInterpretation.absoluteTime,
-        payload: 'Reunião marcada: $alarmName', // Dados adicionais que você pode passar para a notificação
+        payload: 'Reunião marcada: $alarmName',
       );
 
-      setState(() {
-        // Atualize o estado, se necessário
-      });
+      _showMeetingScheduledNotification();
     }
   }
 
-  void _showDateTimePicker(BuildContext context) async {
-    final DateTime currentDate = DateTime.now();
-    DateTime? selectedDate = await showDatePicker(
-      context: context,
-      initialDate: currentDate,
-      firstDate: currentDate,
-      lastDate: currentDate.add(Duration(days: 365)), // Um ano a partir da data atual
+  void _showMeetingScheduledNotification() async {
+    const AndroidNotificationDetails androidPlatformChannelSpecifics =
+        AndroidNotificationDetails(
+      'meeting_channel_id',
+      'Meeting Channel',
+      importance: Importance.max,
+      priority: Priority.high,
+      showWhen: true,
     );
 
-    if (selectedDate != null) {
-      setState(() {
-        this.selectedDate =
-            "${selectedDate.day.toString().padLeft(2, '0')}/${selectedDate.month.toString().padLeft(2, '0')}/${selectedDate.year.toString()}";
-      });
-    }
+    const NotificationDetails platformChannelSpecifics =
+        NotificationDetails(android: androidPlatformChannelSpecifics);
 
-    TimeOfDay? selectedTime = await showTimePicker(
-      context: context,
-      initialTime: TimeOfDay(
-        hour: 1, // Inicialmente, 1 AM
-        minute: 0, // Inicialmente, 0 minuto
-      ),
-    );
-
-    if (selectedTime != null) {
-      setState(() {
-        this.selectedHour = selectedTime.hour.toString().padLeft(2, '0');
-        this.selectedMinute = selectedTime.minute.toString().padLeft(2, '0');
-      });
-    }
-  }
-
-  void _showMeetingScheduledDialog(BuildContext context) {
-    showDialog(
-      context: context,
-      builder: (BuildContext context) {
-        return AlertDialog(
-          title: Text('Reunião Marcada'),
-          content: Text('A reunião foi marcada com sucesso.'),
-          actions: [
-            TextButton(
-              onPressed: () {
-                Navigator.of(context).pop(); // Fecha o pop-up
-              },
-              child: Text('OK'),
-            ),
-          ],
-        );
-      },
+    await flutterLocalNotificationsPlugin.show(
+      0,
+      'Reunião Marcada',
+      'A reunião foi marcada com sucesso.',
+      platformChannelSpecifics,
+      payload: 'Reunião marcada com sucesso',
     );
   }
 }
